@@ -74,19 +74,28 @@ Before you begin, ensure you have met the following requirements (I can also pro
       ```
       Select your Firebase project when prompted.
 
-5. #### Set up environment variables:
+5. #### Set up client side environment variables (Skip if you are using my Firebase project):
+   If you are using your Firebase project, you need to apply your own firebase configuration to the App.
+   You can find your config object on the: 
+   ```
+   Firebase Console -> Project settings -> General -> Your apps -> SDK setup and configuration 
    
-   - For macOS/Linux users:
+   ( ) npm ____ ( ) CDN ____ (X) Config
+   ```
+   After copying your config object, replace it with existing `firebaseConfig` object in the `App.vue`;
+
+6. #### Set up server side environment variables:
+    - For macOS/Linux users:
       ```
       cd functions
       touch .runtimeconfig.json
       ```
-   - For Windows users:
-      ```
-      cd functions
-      echo {} > .runtimeconfig.json
-      ```
-     
+    - For Windows users:
+       ```
+       cd functions
+       echo {} > .runtimeconfig.json
+       ```
+
    Paste the contents into the `.runtimeconfig.json` and replace the placeholder values with your actual Braintree credentials.
    ```json
    {
