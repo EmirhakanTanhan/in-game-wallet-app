@@ -267,8 +267,17 @@ export default {
             },
             cvv: {
               placeholder: '999'
+            },
+            expirationDate: {
+              placeholder: '09/25'
             }
           }
+        };
+
+        const googlePayTransactionInfo = {
+          totalPriceStatus: 'FINAL',
+          totalPrice: this.depositAmount.toFixed(2),
+          currencyCode: 'USD'
         };
 
         this.dropinInstance = await dropin.create({
@@ -286,11 +295,7 @@ export default {
           googlePay: {
             googlePayVersion: 2,
             // merchantId: 'Only on production',
-            transactionInfo: {
-              totalPriceStatus: 'FINAL',
-              totalPrice: this.depositAmount.toFixed(2),
-              currencyCode: 'USD'
-            },
+            transactionInfo: googlePayTransactionInfo,
             allowedPaymentMethods: [{
               type: 'CARD',
               parameters: {
@@ -323,7 +328,7 @@ export default {
     },
 
     formatAmount(amount, currencyIsoCode = 'USD') {
-      return `${amount.toFixed(2) + ' ' + currencyIsoCode}`;
+      return `${amount.toFixed(2) + ' ' + (currencyIsoCode ?? 'USD')}`;
     },
 
     formatDetail(transaction) {
