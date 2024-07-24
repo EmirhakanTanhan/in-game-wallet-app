@@ -5,12 +5,13 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "serve-functions": "npm run build && firebase emulators:start --only functions",
-    "serve": "npm run build && firebase emulators:start && npm run populate-firestore",
+    "serve": "npm run build && firebase emulators:start",
+    "serve-import": "npm run build && firebase emulators:start --import=./src/config/emulator-data",
+    "export-data": "firebase emulators:export ./src/config/export",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log",
-    "populate-firestore": "node src/products/populateFirestore.ts"
+    "logs": "firebase functions:log"
   },
   "engines": {
     "node": "18"

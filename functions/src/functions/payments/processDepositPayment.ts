@@ -2,22 +2,23 @@ import {Transaction, ValidatedResponse} from "braintree";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {createTransactionRecordAndUpdateBalanceIfNeeded} from '../../services/transactionService';
 import {createDepositTransactionInput} from "../../utils/transactionHelper";
-import {gateway, CONST_MERCHANT_KEY} from "../../utils/braintreeHelper";
+import {gateway, merchantKey} from "../../utils/braintreeHelper";
+import {logError, logInfo} from "../../utils/errorHandler";
 
 // Process incoming deposit request using Braintree, update user's balance and record the deposit transaction.
 export const processDepositPayment = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const {amount, paymentMethodNonce} = request.data;
     const userId = request.auth.uid;
 
-    if (typeof amount !== "number" || amount <= 0) {
-        throw new HttpsError("invalid-argument", "Invalid amount");
+    if (typeof amount !== 'number' || amount <= 0) {
+        throw new HttpsError('invalid-argument', 'Invalid amount');
     }
-    if (typeof paymentMethodNonce !== "string" || !paymentMethodNonce) {
-        throw new HttpsError("invalid-argument", "Invalid payment Method Nonce");
+    if (typeof paymentMethodNonce !== 'string' || !paymentMethodNonce) {
+        throw new HttpsError('invalid-argument', 'Invalid payment Method Nonce');
     }
 
     try {
@@ -27,40 +28,37 @@ export const processDepositPayment = onCall(async (request) => {
         if (result.success) {
             // Sale transaction is successful, record transaction and update user's balance
             const transactionInput = createDepositTransactionInput(userId, result);
-            await createTransactionRecordAndUpdateBalanceIfNeeded(transactionInput);
+            const transactionRecord = await createTransactionRecordAndUpdateBalanceIfNeeded(transactionInput);
 
+            logInfo('Deposit transaction is successful', {userId, transactionId: transactionRecord.id});
             return {
-                success: true,
+                status: 'successful',
                 message: 'Payment deposited successfully',
-                result,
             };
         } else {
             // Sale transaction failed, record transaction attempt
             const transactionInput = createDepositTransactionInput(userId, result);
-            await createTransactionRecordAndUpdateBalanceIfNeeded(transactionInput);
+            const transactionRecord = await createTransactionRecordAndUpdateBalanceIfNeeded(transactionInput);
 
-            console.error('Braintree payment failed:', result.message);
-            throw new HttpsError("aborted", result.message || "Transaction failed", result);
+            logInfo('Deposit transaction failed', {userId, transactionId: transactionRecord.id, reason: result.message});
+            throw new HttpsError('aborted', result.message || 'Transaction failed');
         }
     } catch (error) {
-        console.error('Error processing payment:', error);
         if (error instanceof HttpsError) {
             throw error;
         }
-        throw new HttpsError("internal", "Error processing payment");
+
+        logError('Unable to process deposit transaction', {userId, error});
+        throw new HttpsError('internal', 'Error processing payment');
     }
 });
 
 async function processBraintreePayment(userId: string, amount: number, paymentMethodNonce: string): Promise<ValidatedResponse<Transaction>> {
-    try {
-        return await gateway.transaction.sale({
-            amount: amount.toFixed(2),
-            paymentMethodNonce: paymentMethodNonce,
-            merchantAccountId: CONST_MERCHANT_KEY,
-            // customerId: userId,
-            options: {submitForSettlement: true}
-        });
-    } catch (error) {
-        throw new Error(`Braintree payment failed: ${error}`);
-    }
+    return gateway.transaction.sale({
+        amount: amount.toFixed(2),
+        paymentMethodNonce: paymentMethodNonce,
+        merchantAccountId: merchantKey,
+        customerId: userId,
+        options: {submitForSettlement: true}
+    });
 }

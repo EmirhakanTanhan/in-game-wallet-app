@@ -1,10 +1,11 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {getAllProduct} from "../../services/productService";
+import {logError} from "../../utils/errorHandler";
 
 // Get all products.
 export const getProductList = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     try {
@@ -12,7 +13,7 @@ export const getProductList = onCall(async (request) => {
 
         return {allProduct};
     } catch (error) {
-        console.error("Error fetching products:", error);
-        throw new HttpsError("internal", "Error fetching products");
+        logError('Unable to fetch product list', {error});
+        throw new HttpsError('internal', 'Error fetching products');
     }
 });

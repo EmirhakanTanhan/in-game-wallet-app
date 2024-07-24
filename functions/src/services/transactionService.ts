@@ -4,6 +4,7 @@ import {simplifiedTransactionConverter, transactionConverter} from '../utils/tra
 import {calculateCurrentBalance} from "./balanceService";
 import {updateUserById} from "./userService";
 import {userConverter} from "../utils/userHelper";
+import {logError, logWarning} from "../utils/errorHandler";
 
 const db = getFirestore();
 const transactionsRef = db.collection('transactions').withConverter(transactionConverter);
@@ -31,7 +32,7 @@ export async function createTransactionRecordAndUpdateBalanceIfNeeded(transactio
         // If saving attempt is failed, save a copy of the transaction record with the error for handling later.
         // In this case I'm saving a document into Firestore but we can apply other solutions such as saving an object into redis,
         // and trying to save the transaction record into Firestore in a later date.
-        console.error('Error creating transaction document:', error);
+        logError('Unable to create transaction record of completed transaction', {transactionData, error});
         await saveIncompleteTransactionRecord(transactionData, error);
         throw new Error('Failed to create transaction record');
     }
@@ -49,7 +50,7 @@ export async function createTransactionRecordAndUpdateBalanceIfNeeded(transactio
         } catch (error) {
             // Failed to update user's walletBalance field, this field is only for quick access to the user's balance information and isn't critical in any way.
             // Continue without throwing error.
-            console.error('Error updating user balance:', error);
+            logWarning('Unable to update user balance', {userId, error})
         }
     }
 
@@ -57,7 +58,7 @@ export async function createTransactionRecordAndUpdateBalanceIfNeeded(transactio
 }
 
 // Get user's transaction history, contains reduced information.
-export async function getSimplifiedTransactionsByUserId(userId: string, limit: number = 15): Promise<SimplifiedTransaction[]> {
+export async function getSimplifiedTransactionsByUserId(userId: string, limit: number = 10): Promise<SimplifiedTransaction[]> {
     const snapshot = await simplifiedTransactionsRef
         .where('userId', '==', userId)
         .where('type', 'in', ['deposit', 'purchase'])

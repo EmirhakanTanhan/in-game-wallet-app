@@ -1,5 +1,5 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
-import {FieldValue, Timestamp} from "firebase-admin/firestore";
+import {FieldValue} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
 import {createUser, updateUserById, getUserById} from "../../services/userService";
 import {createTransactionRecordAndUpdateBalanceIfNeeded} from "../../services/transactionService";
@@ -7,11 +7,12 @@ import {createInitialBalanceTransactionInput} from "../../utils/transactionHelpe
 import {createUserInput} from "../../utils/userHelper";
 import {User} from "../../types/user";
 import {gateway} from "../../utils/braintreeHelper";
+import {logError} from "../../utils/errorHandler";
 
 // Sign-in with Google Auth, create user if user doesn't exist.
-export const googleAuthSignIn = onCall(async (request): Promise<User> => {
+export const googleAuthSignIn = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const userId = request.auth.uid;
@@ -22,22 +23,16 @@ export const googleAuthSignIn = onCall(async (request): Promise<User> => {
 
         if (!user) {
             // If user doesn't exist in Firestore, create a new user and perform an initial balance transaction
-            user = await saveUserAndCreateInitialBalanceTransaction(userId);
+            await saveUserAndCreateInitialBalanceTransaction(userId);
         } else {
             // If user exists, update their last login time
             await updateUserById(userId, {lastLoginAt: FieldValue.serverTimestamp()});
-
-            // Update the lastLoginAt field of the user locally instead of making another call to Firestore
-            user = {
-                ...user,
-                lastLoginAt: Timestamp.now(),
-            };
         }
 
-        return user;
+        return null;
     } catch (error) {
-        console.error('Error processing sign-in:', error);
-        throw new HttpsError('internal', 'Error processing sign-in');
+        logError('Unable to sign-in', {userId, error})
+        throw new HttpsError('internal', 'Unable to sign-in');
     }
 });
 
@@ -65,7 +60,7 @@ async function saveUserAndCreateInitialBalanceTransaction(userId: string): Promi
 
         return newUser;
     } catch (error) {
-        console.error('Error creating user:', error);
+        logError('Unable to create user', {userId, error})
         throw new HttpsError('internal', 'Error creating user');
     }
 }

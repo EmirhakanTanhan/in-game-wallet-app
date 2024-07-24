@@ -2,10 +2,8 @@ import {FirestoreDataConverter, QueryDocumentSnapshot} from "firebase-admin/lib/
 import {Product} from "../types/product";
 
 export const productConverter: FirestoreDataConverter<Product> = {
-    toFirestore(product: Product): FirebaseFirestore.DocumentData {
-        return {
-            ...product,
-        };
+    toFirestore(): FirebaseFirestore.DocumentData {
+        return {};
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): Product {
         const data = snapshot.data();

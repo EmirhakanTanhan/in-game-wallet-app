@@ -1,11 +1,12 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {getUserBalance} from "../../services/balanceService";
+import {logError} from "../../utils/errorHandler";
 
 // Get user's wallet balance. This function doesn't calculate current balance,
 // it only fetches the walletBalance field for quick access
 export const getBalance = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const userId = request.auth.uid;
@@ -15,7 +16,7 @@ export const getBalance = onCall(async (request) => {
 
         return {balance: userBalance};
     } catch (error) {
-        console.error("Error fetching user balance:", error);
-        throw new HttpsError("internal", "Error fetching user balance:");
+        logError('Unable to fetch balance', {userId, error});
+        throw new HttpsError('internal', 'Unable to fetch user balance:');
     }
 });

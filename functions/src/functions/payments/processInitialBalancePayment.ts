@@ -1,24 +1,26 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { manuallyCreateInitialBalanceTransaction } from '../../services/transactionService';
+import {logError, logInfo} from "../../utils/errorHandler";
 
 // Iterate through user's deposit and purchase transactions and save the most current balance on the initial balance transaction.
 // Discard the last initial balance.
 export const processInitialBalancePayment = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const userId = request.auth.uid;
 
     try {
-        await manuallyCreateInitialBalanceTransaction(userId);
+        const transactionRecord = await manuallyCreateInitialBalanceTransaction(userId);
 
+        logInfo('Initial balance transaction is successful', {userId, transactionId: transactionRecord.id});
         return {
-            success: true,
+            status: 'successful',
             message: 'Initial balance transaction created successfully'
         };
     } catch (error) {
-        console.error('Error creating initial balance transaction:', error);
-        throw new HttpsError('internal', 'Error creating initial balance transaction');
+        logError('Unable to process initial balance transaction', {userId, error});
+        throw new HttpsError('internal', 'Error processing payment');
     }
 });

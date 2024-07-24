@@ -1,16 +1,17 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {getTransactionById} from "../../services/transactionService";
+import {logError} from "../../utils/errorHandler";
 
 // Get transaction details.
 export const getTransaction = onCall(async (request) => {
     if (!request.auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
+        throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
     const {transactionId} = request.data;
 
-    if (typeof transactionId !== "string" || !transactionId) {
-        throw new HttpsError("invalid-argument", "Invalid transaction ID");
+    if (typeof transactionId !== 'string' || !transactionId) {
+        throw new HttpsError('invalid-argument', 'Invalid transaction ID');
     }
 
     try {
@@ -18,7 +19,7 @@ export const getTransaction = onCall(async (request) => {
 
         return {transaction};
     } catch (error) {
-        console.error('Error fetching transaction details:', error);
-        throw new HttpsError("internal", "Error fetching transaction details");
+        logError('Unable to fetch transaction', {transactionId, error});
+        throw new HttpsError('internal', 'Error fetching transaction details');
     }
 });

@@ -54,7 +54,7 @@ export async function calculateCurrentBalance(userId: string): Promise<number> {
 }
 
 // Get user's wallet balance. This function doesn't calculate current balance,
-// it only fetches the walletBalance field for quick access
+// it only fetches the wallet.balance field for quick access
 export async function getUserBalance(userId: string): Promise<number> {
     const userDoc = await usersRef.doc(userId).get();
 

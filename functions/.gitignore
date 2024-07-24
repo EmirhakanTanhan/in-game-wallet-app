@@ -9,6 +9,9 @@ typings/
 node_modules/
 *.local
 
-.env
+# MacOS spesific files
+.DS_Store
+src/.DS_Store
 
-src/utils/braintreeHelper.ts
+.env
+.runtimeconfig.json

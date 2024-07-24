@@ -1,7 +1,8 @@
 import {FirestoreDataConverter, QueryDocumentSnapshot} from 'firebase-admin/firestore';
 import {
     DepositTransaction,
-    DepositTransactionInput, InitialBalanceTransactionInput,
+    DepositTransactionInput,
+    InitialBalanceTransactionInput,
     PurchaseTransactionInput,
     SimplifiedTransaction,
     Transaction,
@@ -54,7 +55,7 @@ export const transactionConverter: FirestoreDataConverter<Transaction> = {
                     previousInitialBalanceId: data.previousInitialBalanceId,
                 };
             default:
-                throw new Error(`Unknown transaction type: ${data.type}`);
+                throw new Error(`Unknown type of Transaction: ${data.type}`);
         }
     },
 };
@@ -72,8 +73,8 @@ export const simplifiedTransactionConverter: FirestoreDataConverter<SimplifiedTr
             currencyIsoCode: data.currencyIsoCode,
             transactionId: data.paymentDetails?.transactionId,
             paymentMethod: data.paymentMethod,
-            cardLast4: data.paymentDetails?.sourceCardLast4,
-            cardType: data.paymentDetails?.sourceCardType,
+            cardLast4: data.paymentDetails?.cardDetails?.sourceCardLast4,
+            cardType: data.paymentDetails?.cardDetails?.sourceCardType,
             productId: data.productId,
             productName: data.productName,
             createdAt: data.createdAt.toDate().toISOString(),

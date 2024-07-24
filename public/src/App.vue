@@ -14,34 +14,32 @@
       </div>
 
       <div class="dashboard">
-        <h2>Your Wallet</h2>
-        <p>Balance: ${{ balance.toFixed(2) }}</p>
+        <h2>Your Wallet Balance</h2>
+        <p>{{ formatAmount(balance) }}</p>
 
-        <div>
-          <select v-model="selectedFailureOption" @change="handleFailure">
-            <option value="" disabled>Select a failure option</option>
-            <option v-for="failureOption in failureOptions" :key="failureOption.value.amount || failureOption.value.cvv" :value="failureOption.value">
+        <div class="failure-selection">
+          <p>Failure option: </p>
+          <select v-model="selectedFailureOptionValue" @change="handleFailure">
+            <option v-for="failureOption in failureOptions" :key="failureOption.value" :value="failureOption.value">
               {{ failureOption.text }}
             </option>
           </select>
-<!--          <p>Selected value: {{ selectedFailureOption }}</p>-->
         </div>
 
         <input v-model.number="depositAmount" type="number" placeholder="Amount to add" :disabled="isDepositAmountDisabled">
-        <button @click="showDropIn" :disabled="depositAmount <= 0">
+        <button @click="showDropIn" :disabled="depositAmount <= 0 || isAddBalanceDisabled">
           Add Balance
         </button>
 
         <div v-if="showDropInUI">
           <div id="dropin-container"></div>
-          <button @click="processDepositPayment">Submit Payment</button>
+          <button @click="processDepositPayment" :disabled="isSubmitPaymentDisabled">Submit Payment</button>
         </div>
 
         <h2>Products</h2>
         <div v-for="product in products" :key="product.id" class="product">
           <h3>{{ product.name }}</h3>
-          <p>{{ product.description }}</p>
-          <p>Price: ${{ product.price }}</p>
+          <p>Price: {{ formatAmount(product.price) }}</p>
           <button @click="processPurchasePayment(product)" :disabled="balance < product.price">
             Purchase
           </button>
@@ -79,7 +77,9 @@
 
 <script>
 import {initializeApp} from 'firebase/app';
-import {getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut,} from 'firebase/auth';
+import {getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut,
+  connectAuthEmulator
+} from 'firebase/auth';
 import {connectFunctionsEmulator, getFunctions, httpsCallable} from "firebase/functions";
 import dropin from 'braintree-web-drop-in';
 
@@ -97,7 +97,7 @@ initializeApp(firebaseConfig);
 const auth = getAuth();
 const functions = getFunctions();
 connectFunctionsEmulator(functions, "localhost", 5001);
-// connectAuthEmulator(auth, "http://localhost:9099");
+connectAuthEmulator(auth, "http://localhost:9099");
 
 // Cloud functions
 const googleAuthSignIn = httpsCallable(functions, 'googleAuthSignIn');
@@ -111,30 +111,28 @@ const getTransactionList = httpsCallable(functions, 'getTransactionList');
 const getProductList = httpsCallable(functions, 'getProductList');
 
 export default {
-  name: 'App',
+  name: 'In-Game Wallet App',
   data() {
     return {
       user: null,
       balance: 0,
-      depositAmount: 0,
+      depositAmount: null,
       isDepositAmountDisabled: false,
-      overrideCvv: null,
+      isAddBalanceDisabled: false,
+      isSubmitPaymentDisabled: false,
       products: [],
       transactions: [],
       showDropInUI: false,
       dropinInstance: null,
       failureOptions: [
-        { value: '', text: 'Successful transaction' },
-        { value: {amount: 2010}, text: 'Card Issuer Declined CVV' },
-        { value: {cvv: 200}, text: 'CVV Does Not Match' },
-        { value: {cvv: 201}, text: 'CVV Not Verified' },
-        { value: {cvv: 301}, text: 'CVV Issuer Does Not Participate' },
-        { value: {amount: 2001}, text: 'Insufficient Funds' },
-        { value: {amount: 2002}, text: 'Limit Exceeded' },
-        { value: {amount: 2004}, text: 'Expired Card' },
-        { value: {amount: 2013}, text: 'Possible Stolen Card' },
+        { value: 0, text: 'Successful Transaction' },
+        { value: 2010, text: 'Card Issuer Declined CVV' },
+        { value: 2001, text: 'Insufficient Funds' },
+        { value: 2002, text: 'Limit Exceeded' },
+        { value: 2004, text: 'Expired Card' },
+        { value: 2013, text: 'Possible Stolen Card' },
       ],
-      selectedFailureOption: ''
+      selectedFailureOptionValue: 0,
     };
   },
   methods: {
@@ -146,9 +144,6 @@ export default {
         this.user = result.user;
 
         await googleAuthSignIn();
-        await this.getBalance();
-        await this.getProductList();
-        await this.getTransactionList();
       } catch (error) {
         console.error('Error in signIn:', error);
       }
@@ -160,7 +155,7 @@ export default {
 
         this.user = null;
         this.balance = 0;
-        this.depositAmount = 0;
+        this.depositAmount = null;
         this.products = [];
         this.transactions = [];
         this.showDropInUI = false;
@@ -181,21 +176,26 @@ export default {
 
     async processDepositPayment() {
       try {
+        this.isSubmitPaymentDisabled = true;
+
         const {nonce} = await this.dropinInstance.requestPaymentMethod();
         await processDepositPayment({amount: this.depositAmount, paymentMethodNonce: nonce });
 
-        this.depositAmount = 0;
         this.showDropInUI = false;
+        this.depositAmount = null;
+        this.isDepositAmountDisabled = false;
+        this.isSubmitPaymentDisabled = false;
+
         if (this.dropinInstance) {
           this.dropinInstance.teardown();
           this.dropinInstance = null;
         }
 
-        await this.getTransactionList();
         alert("Payment successful!");
+        this.updateUserInformation();
       } catch (error) {
         console.error("Error in processDepositPayment:", error);
-        alert("Payment failed!");
+        alert(`Payment failed: ${error.message}`);
       }
     },
 
@@ -208,6 +208,7 @@ export default {
       try {
         await processPurchasePayment({productId: product.id});
         alert(`Successfully purchased ${product.name}`);
+        this.updateUserInformation();
       } catch (error) {
         console.error("Error in processPurchasePayment:", error);
       }
@@ -217,6 +218,7 @@ export default {
       try {
         await processInitialBalancePayment();
         alert('Successfully created initial balance payment');
+        this.updateUserInformation();
       } catch (error) {
         console.error('Error in processInitialBalancePayment:', error);
       }
@@ -256,23 +258,25 @@ export default {
         const clientToken = result.data.clientToken;
 
         this.showDropInUI = true;
+        this.isDepositAmountDisabled = true;
 
         const overrides = {
           fields: {
             number: {
-              placeholder: '1111 1111 1111 1111',
+              placeholder: '5555 5555 5555 4444',
             },
             cvv: {
-              placeholder: '200'
+              placeholder: '999'
             }
           }
         };
 
-        console.log(overrides);
         this.dropinInstance = await dropin.create({
           authorization: clientToken,
           container: '#dropin-container',
           vaultManager: true,
+          preselectVaultedPaymentMethod: false,
+          showDefaultPaymentMethodFirst: false,
           card: {
             cardholderName: {
               required: true,
@@ -305,15 +309,11 @@ export default {
     },
 
     handleFailure() {
-      if (this.selectedFailureOption?.amount) {
-        this.depositAmount = this.selectedFailureOption?.amount;
+      if (this.selectedFailureOptionValue) {
+        this.depositAmount = this.selectedFailureOptionValue;
         this.isDepositAmountDisabled = true;
-        this.overrideCvv = null;
-      } else if (this.selectedFailureOption?.cvv) {
-        this.overrideCvv = this.selectedFailureOption?.cvv;
-        this.isDepositAmountDisabled = false;
       } else {
-        this.overrideCvv = null;
+        this.depositAmount = null;
         this.isDepositAmountDisabled = false;
       }
     },
@@ -322,9 +322,8 @@ export default {
       return new Date(timestamp).toLocaleString();
     },
 
-    formatAmount(amount, currencyIsoCode) {
-      const currency = currencyIsoCode || 'USD';
-      return `${amount.toFixed(2) + ' ' + currency}`;
+    formatAmount(amount, currencyIsoCode = 'USD') {
+      return `${amount.toFixed(2) + ' ' + currencyIsoCode}`;
     },
 
     formatDetail(transaction) {
@@ -336,6 +335,11 @@ export default {
         default:
           return null;
       }
+    },
+
+    updateUserInformation() {
+      this.getBalance();
+      this.getTransactionList();
     }
   },
 
@@ -344,12 +348,13 @@ export default {
       this.user = user;
       if (user) {
         this.getBalance();
-        this.getProductList();
         this.getTransactionList();
+        this.getProductList();
       }
     });
   }
 };
+
 </script>
 
 <style>
@@ -383,6 +388,16 @@ img {
   border: 1px solid #ddd;
   padding: 10px;
   margin: 10px 0;
+}
+
+.failure-selection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.failure-selection p{
+  padding-right: 10px;
 }
 
 #dropin-container {

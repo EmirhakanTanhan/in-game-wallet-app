@@ -1,5 +1,4 @@
 import {initializeApp} from "firebase-admin/app";
-import {onCall, HttpsError} from "firebase-functions/v2/https";
 
 // Initialize app
 initializeApp();
@@ -27,12 +26,3 @@ export {
     getTransactionList,
     getProductList,
 }
-
-// Middleware for auth
-onCall((request) => {
-    const {auth} = request;
-
-    if (!auth) {
-        throw new HttpsError("unauthenticated", "Authentication required");
-    }
-});
