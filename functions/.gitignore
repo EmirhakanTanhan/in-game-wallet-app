@@ -13,5 +13,8 @@ node_modules/
 .DS_Store
 src/.DS_Store
 
+# Enviroment variables
 .env
 .runtimeconfig.json
+
+firebase-debug.log
