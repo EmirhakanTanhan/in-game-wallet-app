@@ -38,25 +38,25 @@ Before you begin, ensure you have met the following requirements (I can also pro
 
 ## Installation
 
-1. Clone the repository:
+1. #### Clone the repository:
    ```
    git clone https://github.com/EmirhakanTanhan/in-game-wallet-app.git
    cd in-game-wallet-app
    ```
 
-2. Install dependencies for App:
+2. #### Install dependencies for App:
    ```
    cd public
    npm install
    ```
 
-3. Install dependencies for Firebase:
+3. #### Install dependencies for Firebase:
    ```
    cd ../functions
    npm install
    ```
 
-4. Set up your Firebase project (or use my Firebase project):
+4. #### Set up your Firebase project (or use my Firebase project):
    
    #### Execute only one of the followings!
 
@@ -74,7 +74,7 @@ Before you begin, ensure you have met the following requirements (I can also pro
       ```
       Select your Firebase project when prompted.
 
-5. Set up environment variables:
+5. #### Set up environment variables:
    
    - For macOS/Linux users:
       ```
@@ -109,7 +109,7 @@ Before you begin, ensure you have met the following requirements (I can also pro
 
 ## Running the Application Locally
 
-1. Start the App:
+1. #### Start the App:
    ```
    cd public
    npm run serve
@@ -117,7 +117,7 @@ Before you begin, ensure you have met the following requirements (I can also pro
    App will be available at http://localhost:7001/ by default.
 
 
-2. Start Firebase emulators:
+2. #### Start Firebase emulators:
 
    Create another terminal
    ```
@@ -141,11 +141,13 @@ functions/
 │   ├── utils/
 │   ├── config/
 │   └── index.ts
-├── package.json
+└──  package.json
 public/
 ├── src/
 │   └── App.vue
 └── package.json
+firebase.json
+firestore.rules
 ```
 
 - `functions/`:
@@ -159,3 +161,12 @@ public/
   - `App.vue`: Main Vue.js component
 - `firebase.json`: Firebase configuration file
 - `firestore.rules`: Security rules for Firestore
+
+## Examples With Images
+
+![app_top](https://github.com/user-attachments/assets/8e6b540e-ef28-4d87-bf93-d58935867b44)
+![app_bottom](https://github.com/user-attachments/assets/7103a7f1-2099-4b1b-ab6e-e7682e8c1107)
+![app_deposit](https://github.com/user-attachments/assets/f875d26a-9645-45f8-b0e8-d509b81210f2)
+![payment_credit_card](https://github.com/user-attachments/assets/b0477228-ab75-434f-90c6-bf5647c44ab4)
+![payment_google_pay](https://github.com/user-attachments/assets/adc4c3d8-743c-4a05-bec7-191073f79e35)
+![emulator_enviroment](https://github.com/user-attachments/assets/93f888b8-6825-4c33-9438-4e99221ac8d6)

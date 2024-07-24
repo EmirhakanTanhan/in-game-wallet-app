@@ -184,6 +184,7 @@ export default {
         this.showDropInUI = false;
         this.depositAmount = null;
         this.isDepositAmountDisabled = false;
+        this.isAddBalanceDisabled = false;
         this.isSubmitPaymentDisabled = false;
 
         if (this.dropinInstance) {
@@ -253,12 +254,14 @@ export default {
     },
 
     async showDropIn() {
+      this.isAddBalanceDisabled = true;
+      this.isDepositAmountDisabled = true;
+
       try {
         const result = await generateClientToken({amount: this.depositAmount});
         const clientToken = result.data.clientToken;
 
         this.showDropInUI = true;
-        this.isDepositAmountDisabled = true;
 
         const overrides = {
           fields: {
